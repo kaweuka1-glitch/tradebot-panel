@@ -179,7 +179,7 @@ function renderStack() {
   const s = D.stk;
   if (!(D.sub && D.sub.stack > Date.now() / 1000)) {
     $("stack").innerHTML = `<div class="card"><div class="title">Копилка BNB</div>
-      <p class="muted" style="margin:6px 0 10px">Сетка SOL/BNB покупает SOL дешевле и продаёт на 2% дороже — прибыль копится в BNB. Только Binance.</p>
+      <p class="muted" style="margin:6px 0 10px">Копилка торгует парой SOL/BNB и наращивает твой BNB. Только Binance.</p>
       <button onclick="act('p_pay_stack')">💳 Подключить — ${(D.price && D.price.stack) || 5} USDT / 30 дней</button></div>`;
     return;
   }
@@ -191,7 +191,7 @@ function renderStack() {
   const used = s.b > 0 ? Math.min(100, s.c / s.b * 100) : 0;
   $("stack").innerHTML = `
     <div class="card"><div class="muted">Накоплено</div><div class="big ${s.pnl >= 0 ? "green" : "red"}">${s.pnl >= 0 ? "+" : ""}${fmt(s.pnl, 6)} BNB</div>
-      <div class="muted">циклов закрыто: ${s.n}</div></div>
+      <div class="muted">сделок закрыто: ${s.n}</div></div>
     <div class="card"><div class="row"><span>Бюджет</span><b>${fmt(s.b, 4)} BNB</b></div>
       <div class="row"><span class="muted">занято</span><span>${fmt(s.c, 4)} BNB · ${used.toFixed(0)}%</span></div>
       <div class="bar"><i style="width:${used}%"></i></div></div>
