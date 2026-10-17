@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>TRADEBOT — панель</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #07080F; --card: #10132A; --card2: #161A36; --line: rgba(255,255,255,.10);
+    --text: #F0F0FF; --muted: rgba(240,240,255,.55); --accent: #6C63FF; --accent2: #8B84FF;
+    --green: #00D68F; --red: #FF4D6A; --gold: #FFB830;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); color: var(--text); font: 15px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { padding: 0 16px calc(84px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: radial-gradient(ellipse 60% 40% at 85% 5%, rgba(108,99,255,.20), transparent 60%),
+                radial-gradient(ellipse 50% 40% at 5% 90%, rgba(0,214,143,.10), transparent 60%); }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 18px 0 6px; }
+  .logo { font-weight: 800; font-size: 20px; letter-spacing: .5px; }
+  .logo span { color: var(--accent2); }
+  .chip { font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 999px; background: var(--card2); border: 1px solid var(--line); }
+  .chip.on { color: var(--green); border-color: rgba(0,214,143,.35); }
+  .chip.off { color: var(--gold); border-color: rgba(255,184,48,.35); }
+  .age { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .age button { font-size: 12px; padding: 4px 10px; }
+  h2 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin: 18px 0 8px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 10px; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .row + .row { margin-top: 8px; }
+  .title { font-weight: 700; font-size: 16px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .big { font-size: 26px; font-weight: 800; }
+  .green { color: var(--green); } .red { color: var(--red); } .gold { color: var(--gold); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .grid .card { margin: 0; }
+  .bar { height: 8px; border-radius: 4px; background: var(--card2); overflow: hidden; margin-top: 8px; }
+  .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); }
+  button, .btn { appearance: none; border: 0; border-radius: 12px; padding: 12px 14px; font: inherit; font-weight: 700;
+    color: #fff; background: var(--accent); cursor: pointer; width: 100%; }
+  button.ghost { background: var(--card2); border: 1px solid var(--line); color: var(--text); }
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card2);
+    color: var(--text); font: inherit; font-size: 16px; }
+  .coin { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; }
+  .badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--card2); }
+  .badge.short { color: var(--red); } .badge.wait { color: var(--muted); } .badge.lock { color: var(--gold); }
+  .link { font-family: ui-monospace, Menlo, monospace; font-size: 13px; word-break: break-all; background: var(--card2);
+    padding: 10px; border-radius: 10px; margin: 8px 0; user-select: all; }
+  .empty { text-align: center; color: var(--muted); padding: 18px 6px; }
+  .page { display: none; } .page.active { display: block; }
+  nav { position: fixed; left: 0; right: 0; bottom: 0; display: flex; background: rgba(7,8,15,.85);
+    backdrop-filter: blur(20px); border-top: 1px solid var(--line); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); }
+  nav a { flex: 1; text-align: center; font-size: 11px; color: var(--muted); text-decoration: none; font-weight: 600; }
+  nav a b { display: block; font-size: 20px; line-height: 1.3; }
+  nav a.active { color: var(--accent2); }
+  .note { font-size: 12px; color: var(--muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">TRADE<span>BOT</span></div>
+  <div class="chip" id="state">…</div>
+</header>
+<div class="age"><span id="age"></span><button class="ghost" style="width:auto" onclick="act('p_panel')">🔄 Обновить</button></div>
+
+<section class="page active" id="p-home">
+  <h2>Подписка</h2>
+  <div id="subs"></div>
+  <h2>Управление</h2>
+  <div class="card">
+    <div class="row"><span>Биржа</span><b id="exchange">—</b></div>
+    <div class="btns">
+      <button class="ghost" id="pauseBtn" onclick="togglePause()">⏸ Пауза</button>
+      <button class="ghost" onclick="act('p_status')">📊 Статус в чате</button>
+    </div>
+    <div class="btns" style="grid-template-columns:1fr">
+      <button class="ghost" onclick="act('p_keys')">🔑 Ключи и биржа</button>
+    </div>
+  </div>
+</section>
+
+<section class="page" id="p-hedge">
+  <h2>🛡 Страхует — монеты</h2>
+  <div id="coins"></div>
+</section>
+
+<section class="page" id="p-stack">
+  <h2>🐷 Копит BNB</h2>
+  <div id="stack"></div>
+</section>
+
+<section class="page" id="p-ref">
+  <h2>🤝 Приведи друга</h2>
+  <div id="ref"></div>
+</section>
+
+<nav>
+  <a href="#" data-p="home" class="active"><b>🏠</b>Главная</a>
+  <a href="#" data-p="hedge"><b>🛡</b>Страховка</a>
+  <a href="#" data-p="stack"><b>🐷</b>Копилка</a>
+  <a href="#" data-p="ref"><b>🤝</b>Друзья</a>
+</nav>
+
+<script>
+"use strict";
+// Данные клиента приходят от бота в ссылке (после «#d=», на сервер GitHub не уходят).
+// Кнопки ничего не делают сами — отправляют команду боту, а он выполняет.
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor("#07080F"); tg.setBackgroundColor("#07080F"); } catch (e) {} }
+
+function param(name) {
+  // Telegram дописывает к ссылке свои параметры (через «&» или ещё один «#») — берём только наше значение
+  const m = location.href.match(new RegExp("[#&?]" + name + "=([A-Za-z0-9_-]+)"));
+  return m ? m[1] : null;
+}
+window.addEventListener("hashchange", () => location.reload());
+function decode(s) {
+  if (!s) return null;
+  try {
+    const b = atob(s.replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(new TextDecoder().decode(Uint8Array.from(b, c => c.charCodeAt(0))));
+  } catch (e) { return null; }
+}
+const D = decode(param("d")) || {};
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = (x, d) => (x == null ? "—" : Number(x).toFixed(d));
+const date = ts => new Date(ts * 1000).toLocaleDateString("ru-RU");
+const $ = id => document.getElementById(id);
+
+function act(cmd) {   // команда боту: /start <cmd>
+  const url = "https://t.me/" + (D.bot || "") + "?start=" + encodeURIComponent(cmd);
+  if (tg && D.bot) { tg.openTelegramLink(url); setTimeout(() => tg.close(), 300); }
+  else if (D.bot) location.href = url;
+}
+function togglePause() { act(D.paused ? "p_resume" : "p_pause"); }
+
+function renderHome() {
+  const now = Date.now() / 1000;
+  $("age").textContent = D.t ? "Данные на " + new Date(D.t * 1000).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "Нет данных — открой панель из бота";
+  const st = $("state");
+  if (!D.keys) { st.textContent = "Биржа не подключена"; st.className = "chip off"; }
+  else if (D.paused) { st.textContent = "⏸ На паузе"; st.className = "chip off"; }
+  else { st.textContent = "🟢 Работает"; st.className = "chip on"; }
+  $("exchange").textContent = { binance: "Binance", bybit: "Bybit" }[D.ex] || "—";
+  $("pauseBtn").textContent = D.paused ? "▶️ Продолжить" : "⏸ Пауза";
+  const tariffs = [["hedge", "🛡 Страхует"], ["stack", "🐷 Копит BNB"]];
+  $("subs").innerHTML = tariffs.filter(([k]) => (D.sell || ["hedge"]).includes(k) || (D.sub && D.sub[k] > now)).map(([k, name]) => {
+    const until = (D.sub && D.sub[k]) || 0;
+    const price = (D.price && D.price[k]) || { hedge: 50, stack: 5 }[k];
+    if (until > now) {
+      const days = Math.floor((until - now) / 86400);
+      return `<div class="card"><div class="row"><span class="title">${name}</span><span class="green">активен</span></div>
+        <div class="row"><span class="muted">до ${date(until)} · осталось ${days} дн.</span>
+        <span class="muted">след. оплата ${price} USDT</span></div>
+        <div class="btns" style="grid-template-columns:1fr"><button class="ghost" onclick="act('p_pay_${k}')">💳 Продлить</button></div></div>`;
+    }
+    return `<div class="card"><div class="row"><span class="title">${name}</span><span class="muted">не подключён</span></div>
+      <div class="btns" style="grid-template-columns:1fr"><button onclick="act('p_pay_${k}')">💳 Подключить — ${price} USDT / 30 дней</button></div></div>`;
+  }).join("");
+}
+
+function renderCoins() {
+  const coins = D.coins || [];
+  if (!(D.sub && D.sub.hedge > Date.now() / 1000)) { $("coins").innerHTML = `<div class="card empty">«Страхует» не подключён.</div>`; return; }
+  if (!coins.length) { $("coins").innerHTML = `<div class="card empty">Пока нет монет под страховкой.<br>Бот берёт монеты со спота дороже ~20$.</div>`; return; }
+  const names = { SHORT: ["шорт открыт", "short"], LOCK: ["пауза до покупки", "lock"], wait: ["ждёт сигнала", "wait"] };
+  $("coins").innerHTML = coins.map(([sym, mark, ref, lot, stop]) => {
+    const [label, cls] = names[mark] || [mark, "wait"];
+    return `<div class="card coin"><span class="title">${esc(sym)}</span><span class="badge ${cls}">${label}</span>
+      <span class="muted">цена покупки ${esc(ref)}</span><span class="muted">лот ${esc(lot)}</span>
+      ${stop ? `<span class="muted">стоп ${esc(stop)}</span><span></span>` : ""}</div>`;
+  }).join("");
+}
+
+function renderStack() {
+  const s = D.stk;
+  if (!(D.sub && D.sub.stack > Date.now() / 1000)) {
+    $("stack").innerHTML = `<div class="card"><div class="title">Копилка BNB</div>
+      <p class="muted" style="margin:6px 0 10px">Сетка SOL/BNB покупает SOL дешевле и продаёт на 2% дороже — прибыль копится в BNB. Только Binance.</p>
+      <button onclick="act('p_pay_stack')">💳 Подключить — ${(D.price && D.price.stack) || 5} USDT / 30 дней</button></div>`;
+    return;
+  }
+  const form = `<div class="card"><div class="title" style="margin-bottom:8px">Бюджет копилки, BNB</div>
+    <input id="budget" type="number" inputmode="decimal" min="0.15" step="0.01" placeholder="например 0.5" value="${s && s.base ? s.base : ""}">
+    <button style="margin-top:10px" onclick="setBudget()">Сохранить бюджет</button>
+    <div class="note">Минимум 0.15 BNB. Бот попросит подтвердить в чате.</div></div>`;
+  if (!s || !s.base) { $("stack").innerHTML = `<div class="card empty">Бюджет не задан — копилка ждёт.</div>` + form; return; }
+  const used = s.b > 0 ? Math.min(100, s.c / s.b * 100) : 0;
+  $("stack").innerHTML = `
+    <div class="card"><div class="muted">Накоплено</div><div class="big ${s.pnl >= 0 ? "green" : "red"}">${s.pnl >= 0 ? "+" : ""}${fmt(s.pnl, 6)} BNB</div>
+      <div class="muted">циклов закрыто: ${s.n}</div></div>
+    <div class="card"><div class="row"><span>Бюджет</span><b>${fmt(s.b, 4)} BNB</b></div>
+      <div class="row"><span class="muted">занято</span><span>${fmt(s.c, 4)} BNB · ${used.toFixed(0)}%</span></div>
+      <div class="bar"><i style="width:${used}%"></i></div></div>
+    <div class="grid"><div class="card"><div class="muted">заявок на покупку</div><div class="big">${s.o}</div></div>
+      <div class="card"><div class="muted">ждут продажи</div><div class="big">${s.p}</div></div></div>` + form;
+}
+function setBudget() {
+  const v = parseFloat(String($("budget").value).replace(",", "."));
+  if (!(v >= 0.15)) { if (tg) tg.showAlert("Нужно число не меньше 0.15"); return; }
+  act("p_budget_" + v.toFixed(4).replace(/0+$/, "").replace(/\.$/, "").replace(".", "_"));
+}
+
+function renderRef() {
+  const r = D.ref;
+  if (!r) { $("ref").innerHTML = `<div class="card empty">Нет данных.</div>`; return; }
+  $("ref").innerHTML = `<div class="card"><p class="muted">Пока хотя бы один друг, пришедший по твоей ссылке, платит за любой тариф, «🐷 Копит BNB» для тебя — ${r.low} USDT вместо ${r.high}.</p>
+    <div class="link" id="reflink">${esc(r.link)}</div>
+    <div class="btns"><button onclick="copyRef()">📋 Скопировать</button><button class="ghost" onclick="shareRef()">📤 Отправить</button></div></div>
+    <div class="grid"><div class="card"><div class="muted">пришли по ссылке</div><div class="big">${r.n}</div></div>
+      <div class="card"><div class="muted">платят сейчас</div><div class="big green">${r.pay}</div></div></div>
+    <div class="card"><div class="row"><span>Копилка для тебя сейчас</span><b>${(D.price && D.price.stack) || "—"} USDT</b></div></div>`;
+}
+function copyRef() {
+  const text = D.ref.link;
+  const done = () => tg ? tg.showAlert("Ссылка скопирована") : null;
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, () => selectRef());
+  else selectRef();
+}
+function selectRef() { const r = document.createRange(); r.selectNodeContents($("reflink")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+function shareRef() {
+  const url = "https://t.me/share/url?url=" + encodeURIComponent(D.ref.link) + "&text=" + encodeURIComponent("Бот страхует спот и копит BNB");
+  if (tg) tg.openTelegramLink(url); else location.href = url;
+}
+
+document.querySelectorAll("nav a").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  document.querySelectorAll("nav a").forEach(x => x.classList.toggle("active", x === a));
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === "p-" + a.dataset.p));
+  window.scrollTo(0, 0);
+}));
+renderHome(); renderCoins(); renderStack(); renderRef();
+</script>
+</body>
+</html>
